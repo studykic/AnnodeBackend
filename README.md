@@ -165,3 +165,10 @@ Spring Security에서 제공하는 인가가 필요한 엔드포인트를 유저
    이때 파이어베이스의 FCM토큰을 통해 기능을 만들었으며 안드로이드 MainActivity가 onCreate되고, 리액트의 베이스 컴포넌트가 첫 마운트된다면 FCM토큰을 서버로
    전송하게되어 서버는 이를 DB에 저장해두어 푸시알림기능을 사용할수있게됩니다 또한 어플이 제거 , 업데이트 , 데이터삭제 될경우를 대비하여 어플의 onCreate
    라이프사이클마다 FCM토큰을 항시 갱신시키게됩니다
+
+
+### 연관 GitHub Repository
+
+### [Annode Frontend](https://github.com/studykic/AnnodeFrontend)
+
+### [Annode Backend](https://github.com/studykic/AnnodeBackend)
