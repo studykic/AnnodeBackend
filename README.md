@@ -50,11 +50,10 @@
 
 ## Android 앱 & 웹사이트
 
-공개 테스트 계정
+Application 체험을 위해 공개 테스트 계정을 사용하실수있습니다!
+ID : dummyportfolio@example.com 
 
-ID : #### dummyportfolio@example.com 
-
-PassWord : #### kic12190
+PassWord : kic12190
 
 <a href='https://play.google.com/store/apps/details?id=com.kic.pospace'><img alt='Google Play에서 받기' src='https://play.google.com/intl/ko/badges/static/images/badges/ko_badge_web_generic.png' width='200'/></a>
 
