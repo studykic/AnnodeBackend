@@ -52,9 +52,9 @@
 
 공개 테스트 계정
 
-#### dummyportfolio@example.com 
+ID : #### dummyportfolio@example.com 
 
-#### kic12190
+PassWord : #### kic12190
 
 <a href='https://play.google.com/store/apps/details?id=com.kic.pospace'><img alt='Google Play에서 받기' src='https://play.google.com/intl/ko/badges/static/images/badges/ko_badge_web_generic.png' width='200'/></a>
 
