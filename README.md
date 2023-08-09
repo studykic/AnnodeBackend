@@ -24,7 +24,7 @@
 
 이런 다양하고 의미 있는 경험을 통해 Annode를 기획하게 되었습니다.
 
-## 사용한 기술
+## 사용된 기술스택
 
 ### 백엔드
 
@@ -33,17 +33,18 @@
 - Spring Security
 - Spring Websocket ( with SockJs )
 
-### 데이터베이스
-
-- Mysql 8.0.33
-
 ### 프론트엔드
 
 - React.js
 - SockJs-client
 - Styled Components
 
-### 개발언어
+### DevOps
+
+- AWS EC2 , S3 , RDS ,CloudFront , ElastiCache
+- RDS ( Mysql ) , ElastiCache( Redis )
+
+### Language
 
 - Java
 - JavaScript
