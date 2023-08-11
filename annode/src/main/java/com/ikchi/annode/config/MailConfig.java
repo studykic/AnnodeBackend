@@ -25,8 +25,8 @@ public class MailConfig {
 
         javaMailSender.setHost("smtp.naver.com"); // 메인 도메인 서버 주소 => 정확히는 smtp 서버 주소
 
-        javaMailSender.setUsername(senderUsername);// 네이버 아이디
-        javaMailSender.setPassword(senderPassword);// 네이버 비밀번호
+        javaMailSender.setUsername(senderUsername);// 메일 아이디
+        javaMailSender.setPassword(senderPassword);// 메일 비밀번호
         javaMailSender.setPort(senderPort);// smtp 메일 인증서버 포트
         javaMailSender.setJavaMailProperties(getMailProperties()); // 메일 인증서버 정보 가져오기
 

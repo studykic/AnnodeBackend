@@ -5,6 +5,8 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Service;
 public class NotificationService {
 
     private final FirebaseMessaging firebaseMessaging;
+    private static final Logger logger = LogManager.getLogger(NotificationService.class);
+
 
     public void sendNotification(String fcmToken, String body, String messageUrl) {
         try {
@@ -38,7 +42,7 @@ public class NotificationService {
             }
 
         } catch (FirebaseMessagingException e) {
-            System.out.println("로그, Firebase메세지 알림을 보내던중 FirebaseMessagingException 발생");
+            logger.error("로그, Firebase메세지 알림을 보내던중 FirebaseMessagingException 발생", e);
         }
     }
 

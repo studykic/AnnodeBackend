@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,8 @@ public class SocketHandler extends TextWebSocketHandler {
     private final UserService userService;
     private final SocketHandlerService socketHandlerService;
     private final JwtProvider jwtProvider;
+
+    private final static Logger logger = LogManager.getLogger(SocketHandler.class);
 
     @Autowired
     public SocketHandler(UserService userService, SocketHandlerService socketHandlerService,
@@ -70,8 +74,6 @@ public class SocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
 
-        System.out.println("접속하려는 세션 session = " + session);
-
         socketHandlerService.handleAfterConnectionEstablished(session);
 
     }
@@ -82,9 +84,6 @@ public class SocketHandler extends TextWebSocketHandler {
     @Override
     @Transactional
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-
-        System.out.println(
-            "퇴장하려는 세션 session = " + session.getAttributes().get("pospaceToken").toString());
 
         // Redis 채널로 퇴장메세지 보내기
         String pospaceToken = session.getAttributes().get("pospaceToken").toString();
@@ -148,38 +147,38 @@ public class SocketHandler extends TextWebSocketHandler {
             switch (event) {
 
                 case "start_call": {
-//                    System.out.println("start_call 메세지를 받았습니다 ");
+
                     socketHandlerService.handleTextMessageStart_call(jsonMessageMap, senderSId,
                         pospaceToken);
                     break;
                 }
                 case "candidate": {
-//                    System.out.println("candidate 메세지를 받았습니다");
+
                     socketHandlerService.handleTextMessageCandidate(jsonMessageMap,
                         mediatorUseSid, pospaceToken);
                     break;
                 }
                 case "offer": {
-//                    System.out.println("offer 메세지를 받았습니다");
+
                     socketHandlerService.handleTextMessageOffer(jsonMessageMap,
                         mediatorUseSid, pospaceToken);
                     break;
                 }
                 case "answer": {
-//                    System.out.println("answer 메세지를 받았습니다");
+
                     socketHandlerService.handleTextMessageAnswer(jsonMessageMap,
                         mediatorUseSid, pospaceToken);
                     break;
                 }
                 case "broadcast_GoodBye": {
-//                    System.out.println("broadcast_GoodBye 메세지를 받았습니다");
+
                     socketHandlerService.handleTextMessageBroadcast_GoodBye(jsonMessageMap,
                         senderSId,
                         pospaceToken);
                     break;
                 }
                 default:
-                    System.out.println("알수없는 이벤트 메세지 입니다");
+                    logger.error("알수없는 이벤트 메세지입니다 - {}", event);
                     break;
             }
 

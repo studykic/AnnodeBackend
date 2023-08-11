@@ -1,5 +1,6 @@
 package com.ikchi.annode.security;
 
+import com.ikchi.annode.Enum.Util.JwtErrorEnum;
 import com.ikchi.annode.domain.vo.Authority;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -8,11 +9,14 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -30,10 +34,13 @@ public class JwtProvider {
 
     private Key secretKey;
 
-    // 토큰 만료시간 설정
+    private static final Logger logger = LogManager.getLogger(JwtProvider.class);
 
-    
-    private final int defaultExpTime = 1209600; // 초 단위 - 2주일 기본설정
+    // JWT 접두사
+    public static final String BEARER_PREFIX = "BEARER";
+
+    // 토큰 만료시간 설정
+    private static final int defaultExpTime = 1209600; // 초 단위 - 2주일 기본설정
 
     private long exp = getExpirationTimeInSeconds(defaultExpTime);
 
@@ -85,64 +92,54 @@ public class JwtProvider {
     // Http 요청으로 받아온 토큰 검증 ( Signature (서명) 부분에서 토큰의 정보들을 확인한다 )
     public boolean validateToken(String token) {
         try {
-            // HTTP를 이용한 Bearer 토큰 인증 방식인지 확인하고 맞으면 공백제거후 토큰만 추출
-            if (!token.substring(0, "BEARER ".length()).equalsIgnoreCase("BEARER ")) {
+            if (!token.substring(0, (BEARER_PREFIX + " ").length())
+                .equalsIgnoreCase(BEARER_PREFIX + " ")) {
+                logger.error(JwtErrorEnum.NOT_BEARER.getMessage());
                 return false;
             } else {
                 token = token.split(" ")[1].trim();
             }
 
-            // 클레임은 JWT에서 사용되는 정보를 나타내는 객체이며
-            // 이떄 setSigningKey로 서명키를 지정하고 parseClaimsJws로 유저의 토큰을 받아 클레임으로 파싱한다
             Jws<Claims> claims = Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token);
-
-            // claims에서 토큰 만료기간을 가져와 만료되었을 시 false 반환
             return !claims.getBody().getExpiration().before(new Date());
         } catch (Exception e) {
+            logger.error(JwtErrorEnum.UNKNOWN_ERROR.getMessage(), e);
             return false;
         }
     }
 
-    // Http 요청으로 받아온 토큰 검증 ( Signature (서명) 부분에서 토큰의 정보들을 확인한다 )
+    // Http 요청으로 받아온 토큰 검증
     // 토큰 만료시간 유효성 검사를 한뒤 email을 반환
     public String getEmailFromToken(String token) {
-
         try {
-
-//            URL 인코딩된 문자열을 디코딩함 - http를 ws방식으로 업그레이드 하는 요청에서 jwt가 url로 들어갈때 사용됨
             token = java.net.URLDecoder.decode(token, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            logger.error(JwtErrorEnum.UNSUPPORTED_ENCODING.getMessage(), e);
+            throw new RuntimeException(e);
+        }
 
-            // HTTP를 이용한 Bearer 토큰 인증 방식인지 확인하고 맞으면 공백제거후 토큰만 추출
-            if (!token.substring(0, "BEARER ".length()).equalsIgnoreCase("BEARER ")) {
-                throw new IllegalStateException("BEARER 아님");
-            } else {
-                token = token.split(" ")[1].trim();
-            }
+        if (!token.substring(0, (BEARER_PREFIX + " ").length())
+            .equalsIgnoreCase(BEARER_PREFIX + " ")) {
+            logger.error(JwtErrorEnum.NOT_BEARER.getMessage());
+            throw new IllegalStateException(JwtErrorEnum.NOT_BEARER.getMessage());
+        } else {
+            token = token.split(" ")[1].trim();
+        }
 
-            // 클레임은 JWT에서 사용되는 정보를 나타내는 객체이며
-            // 이떄 setSigningKey로 서명키를 지정하고 parseClaimsJws로 유저의 토큰을 받아 클레임으로 파싱한다
-            Jws<Claims> claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token);
+        Jws<Claims> claims = Jwts.parserBuilder()
+            .setSigningKey(secretKey)
+            .build()
+            .parseClaimsJws(token);
+        String userMail = claims.getBody().getSubject();
+        boolean expTime = !claims.getBody().getExpiration().before(new Date());
 
-            // mail 정보 가져오기
-            String userMail = claims.getBody().getSubject();
-
-            // claims에서 토큰 만료기간을 가져와 만료되었을 시 false 반환
-            boolean expTime = !claims.getBody().getExpiration().before(new Date());
-            if (expTime) {
-                return userMail;
-            } else {
-                throw new IllegalStateException("jwt 만료됨");
-            }
-
-        } catch (Exception e) {
-            System.out.println("jwt 에러 : " + e.getMessage());
-            throw new RuntimeException("jwt 에러 : " + e.getMessage());
+        if (expTime) {
+            return userMail;
+        } else {
+            throw new IllegalStateException(JwtErrorEnum.JWT_EXPIRED.getMessage());
         }
     }
 

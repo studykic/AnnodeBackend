@@ -1,5 +1,6 @@
 package com.ikchi.annode.service.Util.user;
 
+import com.ikchi.annode.Enum.Util.RegisterMailEnum;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -11,12 +12,12 @@ import java.util.Random;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 // 메일 전송 서비스
-@Service
+@Component
 @RequiredArgsConstructor
-public class RegisterMailService {
+public class RegisterMail {
 
 
     private final JavaMailSender emailSender;
@@ -43,10 +44,10 @@ public class RegisterMailService {
             MimeMessage message = createMessage(email); // 메일 발송
 
             emailSender.send(message);
-            System.out.println("인증번호 dlswmdqjsgh = " + ePw);
+
             return Optional.of(ePw); // 메일로 보냈던 인증 코드를 서버로 반환
-        } catch (Exception e) {
-            throw new IllegalStateException("인증 메일 전송에 실패했습니다");
+        } catch (UnsupportedEncodingException | MessagingException e) {
+            throw new IllegalStateException(RegisterMailEnum.FAILED_SEND_EMAIL.getMessage());
         }
 
     }
@@ -58,9 +59,10 @@ public class RegisterMailService {
 
             emailSender.send(message);
 
-        } catch (Exception e) {
-            throw new IllegalStateException("인증 메일 전송에 실패했습니다");
+        } catch (UnsupportedEncodingException | MessagingException e) {
+            throw new IllegalStateException(RegisterMailEnum.FAILED_SEND_EMAIL.getMessage());
         }
+
     }
 
 
@@ -72,9 +74,10 @@ public class RegisterMailService {
 
             emailSender.send(message);
 
-        } catch (Exception e) {
-            throw new IllegalStateException("인증 메일 전송에 실패했습니다");
+        } catch (UnsupportedEncodingException | MessagingException e) {
+            throw new IllegalStateException(RegisterMailEnum.FAILED_SEND_EMAIL.getMessage());
         }
+
     }
 
     // 초대권 로직 - 실사용은 추후 고려
@@ -85,9 +88,10 @@ public class RegisterMailService {
 
             emailSender.send(message);
 
-        } catch (Exception e) {
-            throw new IllegalStateException("인증 메일 전송에 실패했습니다");
+        } catch (UnsupportedEncodingException | MessagingException e) {
+            throw new IllegalStateException(RegisterMailEnum.FAILED_SEND_EMAIL.getMessage());
         }
+
     }
 
     // 메일 내용 작성

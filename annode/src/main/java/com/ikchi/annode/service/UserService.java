@@ -29,7 +29,7 @@ import com.ikchi.annode.repository.ReportUserRepository;
 import com.ikchi.annode.repository.UserRepository;
 import com.ikchi.annode.security.JwtProvider;
 import com.ikchi.annode.service.Util.user.MailAuthManager;
-import com.ikchi.annode.service.Util.user.RegisterMailService;
+import com.ikchi.annode.service.Util.user.RegisterMail;
 import com.ikchi.annode.service.Util.user.SmsService;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -41,6 +41,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -55,7 +57,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class UserService {
 
-
+    private static final Logger logger = LogManager.getLogger(UserService.class);
     private final NotificationService notificationService;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
@@ -79,7 +81,8 @@ public class UserService {
     private final SmsService smsService;
 
     // 메일관련 서비스
-    private final RegisterMailService registerMail;
+    private final RegisterMail registerMail;
+
     // 서버의 메모리에서 mail 인증 코드를 관리
     private final MailAuthManager mailAuthManager;
 
@@ -120,13 +123,13 @@ public class UserService {
 
                 // 수신자 메일에게 보낼 인증 코드 전송 및 Redis를 통한 분산캐시
                 String authCode = generateAndSendPhoneAuthCode(phoneNumber);
-                System.out.println("로그, phone 인증번호 dlswmdqjsgh = " + authCode);
+
                 valOps.set(phoneNumber, authCode, 5, TimeUnit.MINUTES);
 
             }
             break;
             default: {
-                System.out.println("로그, 올바르지 않은 이벤트명 입니다.");
+                logger.error("로그, 올바르지 않은 이벤트명 입니다.");
             }
         }
     }
@@ -178,7 +181,7 @@ public class UserService {
             }
             break;
             default: {
-                System.out.println("로그, 올바르지 않은 이벤트명 입니다.");
+                logger.error("로그, 올바르지 않은 이벤트명 입니다.");
             }
         }
     }
@@ -300,7 +303,7 @@ public class UserService {
             // 신규유저 저장
             userRepository.save(user);
 
-            System.out.println("로그, 신규 회원가입 user = " + user);
+            logger.info("신규 회원가입 완료한 유저 : {}", user.getId());
 
             // 회원가입 완료후 mailAuthManager에서 관리되는 가입한 유저의 인증정보객체를 삭제한다
             redisTemplate.delete(email);
@@ -819,7 +822,6 @@ public class UserService {
             Map<String, String> fcmTokenMap = mapper.readValue(fcmToken, Map.class);
 
             String fcmTokenValue = fcmTokenMap.get("fcmToken");
-            System.out.println("로그아웃 fcmTokenValue = " + fcmTokenValue);
 
             if (fcmTokenValue != null && !fcmTokenValue.isEmpty() && !fcmTokenValue.isBlank()) {
                 user.setFcmToken(null);

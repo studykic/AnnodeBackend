@@ -20,7 +20,8 @@ public class ReportUserRepository {
     }
 
     public List<ReportUserAndPospace> findReportUserAndPospaceListByUser(User user) {
-        return em.createQuery("SELECT rp FROM ReportUserAndPospace rp WHERE rp.reporter = :user")
+        return em.createQuery("SELECT rp FROM ReportUserAndPospace rp WHERE rp.reporter = :user",
+                ReportUserAndPospace.class)
             .setParameter("user", user)
             .getResultList();
     }

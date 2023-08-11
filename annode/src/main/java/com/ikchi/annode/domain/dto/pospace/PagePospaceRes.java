@@ -1,6 +1,6 @@
 package com.ikchi.annode.domain.dto.pospace;
 
-import com.ikchi.annode.domain.Constants.Visibility;
+import com.ikchi.annode.Enum.Constants.Visibility;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Getter;

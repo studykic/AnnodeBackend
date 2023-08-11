@@ -1,6 +1,6 @@
 package com.ikchi.annode.domain.entity;
 
-import com.ikchi.annode.domain.Constants.Visibility;
+import com.ikchi.annode.Enum.Constants.Visibility;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;

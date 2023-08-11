@@ -12,7 +12,6 @@ import com.ikchi.annode.repository.ReportUserRepository;
 import com.ikchi.annode.repository.UserRepository;
 import com.ikchi.annode.security.AESUtil;
 import com.ikchi.annode.security.JwtProvider;
-import com.ikchi.annode.service.Util.user.UserInfo;
 import com.ikchi.annode.websocket.RedisMessageSubscriber;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
@@ -21,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,9 +57,6 @@ public class SocketHandlerService {
 
 
     private static final Map<String, List<WebSocketSession>> sessionMap = new ConcurrentHashMap<>();
-
-
-    private static final Map<String, UserInfo> sessionToRoomUserInfoMap = new ConcurrentHashMap<>();
 
 
     // 세션이 처음연결되면 입장하려는 pospace를 찾아 적절한 Redis채널을 생성하거나 참가를하게한뒤
@@ -329,8 +324,7 @@ public class SocketHandlerService {
 
                     String sessionEmail = session.getAttributes().get("email").toString();
 
-                    User user = userRepository.findUserByMail(sessionEmail).orElseThrow(
-                        () -> new NoSuchElementException("로그, 퇴장을 수행하려는 유저가 존재하지않음"));
+                    User user = userService.findUserByMail(sessionEmail);
 
                     messageJson = objectMapper.createObjectNode();
 
@@ -354,12 +348,6 @@ public class SocketHandlerService {
             throw new IllegalArgumentException(
                 SocketHandlerMessage.MESSAGE_MODIFICATION_FAILED.getMessage());
         }
-    }
-
-
-    public Optional<UserInfo> getUserInfo(String email) {
-        UserInfo userInfo = sessionToRoomUserInfoMap.get(email);
-        return Optional.ofNullable(userInfo);
     }
 
 
@@ -407,22 +395,14 @@ public class SocketHandlerService {
         }
     }
 
-    // 좋아요를 눌러서 user의 likeCount를 증가시킨다 이떄 synchronized를 사용했기때문에
-    // 여러명이 동시에 요청해도 한번에 한 스레드만 처리하여 순차적으로 대기시켰다가 좋아요 요청이 처리된다
-//    public void addLike(String email) {
-//        User user = userRepository.findUserByMailWithLock(email)
-//            .orElseThrow(() -> new NoSuchElementException("유저가 존재하지 않습니다"));
-//
-//        user.setLikeCount(user.getLikeCount() + 1);
-//    }
 
     public User jwtToUser(String jwt) {
         try {
 
             String sessionEmail = jwtProvider.getEmailFromToken(jwt);
 
-            User user = userService.findUserByMail(sessionEmail);
-            return user;
+            return userService.findUserByMail(sessionEmail);
+
         } catch (Exception e) {
             throw new NoSuchElementException(UserExceptionMessage.NON_EXISTENT_USER.getMessage());
         }

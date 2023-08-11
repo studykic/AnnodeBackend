@@ -1,6 +1,6 @@
 package com.ikchi.annode.controller;
 
-import com.ikchi.annode.annotation.JwtToUser;
+import com.ikchi.annode.annotation.JwtToUserMail;
 import com.ikchi.annode.domain.dto.user.AnnodeFollowRes;
 import com.ikchi.annode.domain.dto.user.FollowAcceptReq;
 import com.ikchi.annode.domain.dto.user.FollowRes;
@@ -82,7 +82,7 @@ public class UserController {
     }
 
     @PostMapping("/user/fcmToken")
-    public UserSimpleRes fcmTokenCheck(@JwtToUser String email, @RequestBody String fcmToken) {
+    public UserSimpleRes fcmTokenCheck(@JwtToUserMail String email, @RequestBody String fcmToken) {
 
         UserSimpleRes userSimpleRes = userService.fcmTokenCheck(email, fcmToken);
         return userSimpleRes;
@@ -90,7 +90,7 @@ public class UserController {
 
     // Logout
     @PostMapping("/user/logout")
-    public void logOut(@JwtToUser String email, @RequestBody String fcmToken) {
+    public void logOut(@JwtToUserMail String email, @RequestBody String fcmToken) {
 
         userService.logOut(email, fcmToken);
 
@@ -99,7 +99,8 @@ public class UserController {
 
     // follow 신청을 수행
     @PostMapping("/user/follow")
-    public void requestAnnodeFollow(@JwtToUser String email, @RequestParam String userIdentifier) {
+    public void requestAnnodeFollow(@JwtToUserMail String email,
+        @RequestParam String userIdentifier) {
 
         userService.requestAnnodeFollow(email, userIdentifier);
 
@@ -107,7 +108,7 @@ public class UserController {
 
     // follow 신청을 수행
     @PostMapping("/user/follow/delete")
-    public void requestAnnodeUnFollow(@JwtToUser String email,
+    public void requestAnnodeUnFollow(@JwtToUserMail String email,
         @RequestParam String userIdentifier) {
 
         userService.unFollow(email, userIdentifier);
@@ -117,7 +118,7 @@ public class UserController {
 
     // Follow 목록을 조회
     @GetMapping("/user/follow/list")
-    public List<FollowRes> getFollowList(@JwtToUser String email) {
+    public List<FollowRes> getFollowList(@JwtToUserMail String email) {
 
         List<FollowRes> annodeFollowList = userService.getFollowList(email);
 
@@ -126,7 +127,7 @@ public class UserController {
 
     // Cross Follow중인 팔로잉 유저 List를 반환
     @GetMapping("/user/follow/cross/list")
-    public List<UserSimpleRes> getCrossFollowList(@JwtToUser String email) {
+    public List<UserSimpleRes> getCrossFollowList(@JwtToUserMail String email) {
 
         List<UserRelationShip> crossFollowsByUser = userService.getCrossFollowsByUser(email);
         List<UserSimpleRes> userSimpleResList = userService.userRelationshipsToSimpleUserInfos(
@@ -138,7 +139,7 @@ public class UserController {
 
     // 유저가 요청받은 follow 목록을 조회
     @GetMapping("/user/follow/request/list")
-    public List<AnnodeFollowRes> getAnnodeFollow(@JwtToUser String email) {
+    public List<AnnodeFollowRes> getAnnodeFollow(@JwtToUserMail String email) {
 
         List<AnnodeFollowRes> annodeFollowList = userService.getAnnodeFollowList(email);
 
@@ -148,7 +149,7 @@ public class UserController {
 
     // 유저에게 제안된 follow 수락 거절을 수행
     @PostMapping("/user/follow/accept")
-    public void acceptFollowRequest(@JwtToUser String email,
+    public void acceptFollowRequest(@JwtToUserMail String email,
         @RequestBody FollowAcceptReq followAcceptReq) {
 
 //        어노드팔로우요청은 수락이됬든 거절이든 제거하고
@@ -161,19 +162,19 @@ public class UserController {
 
     // 회원 탈퇴
     @DeleteMapping("/user/delete")
-    public void userDelete(@JwtToUser String userMail) {
+    public void userDelete(@JwtToUserMail String userMail) {
         userService.deleteUser(userMail);
     }
 
     // 회원 탈퇴
     @PostMapping("/admin/user/ban")
-    public void userBan(@JwtToUser String userMail, String targetIdentifier) {
+    public void userBan(@JwtToUserMail String userMail, String targetIdentifier) {
         userService.userBan(userMail, targetIdentifier);
     }
 
 
     @GetMapping("/user/info")
-    public UserInfo getUserInfo(@JwtToUser String userMail,
+    public UserInfo getUserInfo(@JwtToUserMail String userMail,
         @RequestParam(required = false) String userIdentifier) {
 
         UserInfo userInfo = null;
@@ -205,7 +206,7 @@ public class UserController {
 
     //  multipart/form-data의 요청바디에서 일부를 추출
     @PostMapping(value = "/user/info/update")
-    public String userInfoUpdate(@JwtToUser String userMail,
+    public String userInfoUpdate(@JwtToUserMail String userMail,
         @RequestParam(name = "nickName", required = false) String nickName,
         @RequestParam(name = "profileImgFile", required = false) MultipartFile profileImgFile) {
 

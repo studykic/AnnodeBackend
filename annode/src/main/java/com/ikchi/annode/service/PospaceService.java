@@ -1,8 +1,9 @@
 package com.ikchi.annode.service;
 
 
+import com.ikchi.annode.Enum.Constants.Visibility;
 import com.ikchi.annode.Enum.PospaceExceptionMessage;
-import com.ikchi.annode.domain.Constants.Visibility;
+import com.ikchi.annode.Enum.UserExceptionMessage;
 import com.ikchi.annode.domain.dto.ReportReq;
 import com.ikchi.annode.domain.dto.pospace.PagePospaceRes;
 import com.ikchi.annode.domain.dto.pospace.PospaceCommentCreateReq;
@@ -71,13 +72,8 @@ public class PospaceService {
                 user.getUserIdentifier());
         }
 
-        Visibility visibility;
-        try {
-            visibility = Visibility.valueOf(pospaceReq.getVisibility().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                PospaceExceptionMessage.INVALID_POSPACE_TYPE.getMessage());
-        }
+        Visibility visibility = Visibility.fromString(pospaceReq.getVisibility())
+            .orElseThrow(() -> new NoSuchElementException(Visibility.NO_SUCH_VISIBILITY_MSG));
 
         Pospace pospace = new Pospace(user, pospaceReq.getPospaceContent(),
             pospaceReq.getMaxAnnode(), visibility,
@@ -196,7 +192,8 @@ public class PospaceService {
             if (pospace.getVisibility().equals(Visibility.ALL)) {
                 return pospaceInfoRes;
             } else {
-                throw new IllegalArgumentException("로그인이 필요한 게시물입니다. 어플에서 접근해주세요");
+                throw new IllegalArgumentException(
+                    PospaceExceptionMessage.LOGIN_REQUIRED_FOR_POST.getMessage());
             }
         }
 
@@ -221,7 +218,8 @@ public class PospaceService {
         if (pospace.getVisibility().equals(Visibility.FOLLOWER)) {
 
             if (!followIdentifierList.contains(writer.getUserIdentifier())) {
-                throw new RuntimeException("follow 관계가 아니기에 접근할수없습니다");
+                throw new RuntimeException(
+                    PospaceExceptionMessage.NO_FOLLOW_RELATIONSHIP.getMessage());
             }
 
         }
@@ -236,7 +234,8 @@ public class PospaceService {
             boolean isCrossFollow = followIdentifierList.contains(writer.getUserIdentifier())
                 && writerFolloewIdentifierList.contains(user.getUserIdentifier());
             if (!isCrossFollow) {
-                throw new IllegalStateException("Cross Follow 관계가 아니기에 접근할수없습니다");
+                throw new IllegalStateException(
+                    PospaceExceptionMessage.NO_CROSSFOLLOW_RELATIONSHIP.getMessage());
             }
 
         }
@@ -372,7 +371,7 @@ public class PospaceService {
             String messageUrl = clientUrl + "/space/pospace" + pospace.getId();
 
             notificationService.sendNotification(pospace.getWriter().getFcmToken(),
-                messageUrl + " - 작성하신 게시물에 " + user.getNickName() + "님 으로부터 댓글이 도착했습니다",
+                "작성하신 게시물에 " + user.getNickName() + "님 으로부터 댓글이 도착했습니다",
                 messageUrl);
 
 
@@ -388,14 +387,15 @@ public class PospaceService {
     @Transactional
     public List<PospaceCommentRes> removePospaceComment(Long commentId, String email) {
 
-        User userByMail = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다"));
+        User user = userService.findUserByMail(email);
 
         PospaceComment comment = pospaceRepository.findComment(commentId)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 댓글입니다"));
+            .orElseThrow(() -> new NoSuchElementException(
+                PospaceExceptionMessage.NO_SUCH_COMMENT.getMessage()));
 
-        if (!comment.getCommentWriter().equals(userByMail)) {
-            throw new IllegalStateException("댓글의 작성자가 아닙니다");
+        if (!comment.getCommentWriter().equals(user)) {
+            throw new IllegalStateException(
+                PospaceExceptionMessage.NOT_COMMENT_WRITER.getMessage());
         }
 
         pospaceRepository.deleteComment(comment);
@@ -429,12 +429,13 @@ public class PospaceService {
     public Map<String, String> pospaceAccess(Long pospaceId, String userMail) {
 
         User user = userRepository.findUserByMailWithLock(userMail)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다"));
+            .orElseThrow(() -> new NoSuchElementException(
+                UserExceptionMessage.NON_EXISTENT_USER.getMessage()));
 
         Pospace pospace = getPospaceById(pospaceId);
 
         if (isUserAlreadyInRoom(user)) {
-            throw new IllegalStateException("이미 접속중인 방이있습니다");
+            throw new IllegalStateException(PospaceExceptionMessage.ALREADY_IN_ROOM.getMessage());
         }
 
         // 유효성 검증 통과시 암호화된 pospaceToken을 반환
@@ -475,15 +476,18 @@ public class PospaceService {
             }
             case FOLLOWER -> {
                 if (!isTargetUserFollow(user, writer)) {
-                    throw new IllegalStateException("follow 관계가 아닙니다.");
+                    throw new IllegalStateException(
+                        PospaceExceptionMessage.NO_FOLLOW_RELATIONSHIP.getMessage());
                 }
             }
             case CROSSFOLLOW -> {
                 if (!isTargetUserCrossFollow(user, writer)) {
-                    throw new IllegalStateException("cross Follow 관계가 아닙니다.");
+                    throw new IllegalStateException(
+                        PospaceExceptionMessage.NO_CROSSFOLLOW_RELATIONSHIP.getMessage());
                 }
             }
-            default -> throw new IllegalStateException("입장중 문제가 발생하였습니다");
+            default -> throw new IllegalStateException(
+                PospaceExceptionMessage.UNEXPECTED_ERROR.getMessage());
         }
 
     }
@@ -515,7 +519,8 @@ public class PospaceService {
             user.getEmail());
 
         if (crossFollowsByUser.isEmpty()) {
-            throw new IllegalStateException("cross Follow중인 유저가 없습니다");
+            throw new IllegalStateException(
+                PospaceExceptionMessage.NO_CROSSFOLLOW_USERS.getMessage());
         }
 
         boolean isTargetUserCrossFollow = crossFollowsByUser.stream()
@@ -543,11 +548,9 @@ public class PospaceService {
 
                 List<String> pospaceLikeUserIdentifiers = pospace.getPospaceLikeUsers();
 
-                System.out.println("pospaceLikeUserIdentifiers.toString() = "
-                    + pospaceLikeUserIdentifiers.toString());
-
                 if (pospaceLikeUserIdentifiers.contains(userIdentifier)) {
-                    throw new IllegalStateException("이미 좋아요한 게시물입니다");
+                    throw new IllegalStateException(
+                        PospaceExceptionMessage.ALREADY_LIKED_POST.getMessage());
                 }
 
                 pospaceLikeUserIdentifiers.add(user.getUserIdentifier());
@@ -568,7 +571,8 @@ public class PospaceService {
 
             } catch (OptimisticLockException e) {
                 if (i == maxAttempts - 1) {
-                    throw new IllegalStateException("좋아요기능이 원활하지않습니다 나중에 다시 시도해주세요");
+                    throw new IllegalStateException(
+                        PospaceExceptionMessage.UNEXPECTED_ERROR.getMessage());
                 }
             }
         }

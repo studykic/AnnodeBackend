@@ -18,7 +18,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public String handleException(Exception e) {
         e.printStackTrace();
-        return "오류가 발생했습니다";
+        return "문제가 발생했습니다";
     }
 
     //  객체 바인딩시 예외는 크게 3가지가있다

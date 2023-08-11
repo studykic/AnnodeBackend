@@ -1,6 +1,6 @@
 package com.ikchi.annode.Resolver;
 
-import com.ikchi.annode.annotation.JwtToUser;
+import com.ikchi.annode.annotation.JwtToUserMail;
 import com.ikchi.annode.security.JwtProvider;
 import com.ikchi.annode.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ public class JwtResolver implements HandlerMethodArgumentResolver {
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.getParameterAnnotation(JwtToUser.class) != null
+        return parameter.getParameterAnnotation(JwtToUserMail.class) != null
             && parameter.getParameterType().equals(String.class);
 
     }

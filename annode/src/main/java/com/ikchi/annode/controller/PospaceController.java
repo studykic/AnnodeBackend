@@ -1,6 +1,6 @@
 package com.ikchi.annode.controller;
 
-import com.ikchi.annode.annotation.JwtToUser;
+import com.ikchi.annode.annotation.JwtToUserMail;
 import com.ikchi.annode.domain.dto.ReportReq;
 import com.ikchi.annode.domain.dto.pospace.PagePospaceRes;
 import com.ikchi.annode.domain.dto.pospace.PospaceCommentCreateReq;
@@ -44,7 +44,7 @@ public class PospaceController {
         @RequestParam(name = "userTagList", required = false) List<String> userTagList,
         @RequestParam(name = "tolkOpen", required = false) Boolean tolkOpen,
         @RequestParam(name = "profileImageFiles", required = false) List<MultipartFile> profileImageFiles,
-        @JwtToUser String email) {
+        @JwtToUserMail String email) {
 
         PospaceReq pospaceReq = new PospaceReq(pospaceContent, maxAnnode, visibility,
             userTagList, tolkOpen, profileImageFiles);
@@ -55,7 +55,7 @@ public class PospaceController {
 
     @PatchMapping("/pospace/update")
     public void createRoom(@RequestBody PospaceUpdate pospaceUpdate,
-        @JwtToUser String email) {
+        @JwtToUserMail String email) {
 
         pospaceService.updatePospace(pospaceUpdate, email);
 
@@ -64,7 +64,7 @@ public class PospaceController {
     @DeleteMapping("/pospace/delete")
     public void deletePospace(
         @RequestParam Long pospaceId,
-        @JwtToUser String email) {
+        @JwtToUserMail String email) {
 
         pospaceService.deletePospace(pospaceId, email);
 
@@ -75,7 +75,7 @@ public class PospaceController {
     @GetMapping("/pospace/access")
     @Transactional
     public Map<String, String> pospaceAccess(@RequestParam Long pospaceId,
-        @JwtToUser String userMail) {
+        @JwtToUserMail String userMail) {
         Map<String, String> myPospaceAccessMap = pospaceService.pospaceAccess(pospaceId, userMail);
 
         return myPospaceAccessMap;
@@ -83,7 +83,7 @@ public class PospaceController {
 
     @GetMapping("/pospace/list")
     public Page<PagePospaceRes> getPagePospaceResList(
-        @JwtToUser String email,
+        @JwtToUserMail String email,
         @RequestParam(defaultValue = "1") Long followPospaceIdx,
         @RequestParam(defaultValue = "1") Long publicPospaceIdx,
         @RequestParam(defaultValue = "1") Long crossFollowPospaceIdx,
@@ -100,7 +100,7 @@ public class PospaceController {
 
     @GetMapping("/user/info/pospace/list")
     public Page<PagePospaceRes> getUserPagePospaceResList(
-        @JwtToUser String email,
+        @JwtToUserMail String email,
         @RequestParam String userIdentifier,
         @RequestParam(defaultValue = "1") Long userPospaceIdx,
         @RequestParam Boolean isFirstReq,
@@ -117,7 +117,8 @@ public class PospaceController {
 
     // 상세한 게시글보여주기
     @GetMapping("/view/pospace/info")
-    public PospaceInfoRes getPospaceInfo(@JwtToUser String email, @RequestParam Long pospaceId) {
+    public PospaceInfoRes getPospaceInfo(@JwtToUserMail String email,
+        @RequestParam Long pospaceId) {
 
         PospaceInfoRes pospaceInfoRes = pospaceService.getPospaceInfo(pospaceId, email);
 
@@ -129,7 +130,6 @@ public class PospaceController {
     public List<PospaceCommentRes> findPospaceCommentList(
         @RequestParam Long pospaceId) {
 
-        System.out.println("pospaceId = " + pospaceId);
         List<PospaceCommentRes> pospaceCommentResList = pospaceService.findPospaceCommentList(
             pospaceId);
 
@@ -139,7 +139,7 @@ public class PospaceController {
     @PostMapping("/pospace/comment/create")
     public List<PospaceCommentRes> commentCreate(
         @RequestBody PospaceCommentCreateReq pospaceCommentCreateReq,
-        @JwtToUser String email) {
+        @JwtToUserMail String email) {
         List<PospaceCommentRes> pospaceCommentResList = pospaceService.createPospaceComment(
             pospaceCommentCreateReq, email);
 
@@ -148,7 +148,7 @@ public class PospaceController {
 
     @DeleteMapping("/pospace/comment/delete")
     public List<PospaceCommentRes> commentDelete(@RequestParam Long commentId,
-        @JwtToUser String email) {
+        @JwtToUserMail String email) {
 
         List<PospaceCommentRes> pospaceCommentResList = pospaceService.removePospaceComment(
             commentId, email);
@@ -159,7 +159,7 @@ public class PospaceController {
 
     @PostMapping("/pospace/like")
     public Map<Long, Integer> createRoom(@RequestParam Long pospaceId,
-        @JwtToUser String email) {
+        @JwtToUserMail String email) {
 
         Map<Long, Integer> aaa = new HashMap<>();
 
@@ -172,7 +172,7 @@ public class PospaceController {
 
     @PostMapping("/pospace/report")
     public void reportPospace(@RequestBody ReportReq reportReq,
-        @JwtToUser String email) {
+        @JwtToUserMail String email) {
 
         pospaceService.reportPospace(reportReq, email);
 
