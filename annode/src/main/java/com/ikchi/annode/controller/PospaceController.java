@@ -9,7 +9,6 @@ import com.ikchi.annode.domain.dto.pospace.PospaceInfoRes;
 import com.ikchi.annode.domain.dto.pospace.PospaceReq;
 import com.ikchi.annode.domain.dto.pospace.PospaceUpdate;
 import com.ikchi.annode.service.PospaceService;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -161,13 +160,10 @@ public class PospaceController {
     public Map<Long, Integer> createRoom(@RequestParam Long pospaceId,
         @JwtToUserMail String email) {
 
-        Map<Long, Integer> aaa = new HashMap<>();
+        Map<Long, Integer> likeMap = pospaceService.pospaceIncreaseLike(pospaceId, email);
 
-        Integer likeCount = pospaceService.pospaceIncreaseLike(pospaceId, email);
+        return likeMap;
 
-        aaa.put(pospaceId, likeCount);
-
-        return aaa;
     }
 
     @PostMapping("/pospace/report")

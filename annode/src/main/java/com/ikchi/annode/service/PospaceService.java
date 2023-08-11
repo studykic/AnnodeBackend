@@ -21,7 +21,6 @@ import com.ikchi.annode.repository.PospaceRepository;
 import com.ikchi.annode.repository.ReportUserRepository;
 import com.ikchi.annode.repository.UserRepository;
 import com.ikchi.annode.security.AESUtil;
-import jakarta.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -533,52 +532,38 @@ public class PospaceService {
     // 낙관적락과 Version을 사용하여 좋아요기능을 수행
     // 영원한 좋아요 로직 호출을 방지하기위해 무한루프의 최대횟수를 방지하기
     @Transactional
-    public Integer pospaceIncreaseLike(Long pospaceId, String email) {
+    public Map<Long, Integer> pospaceIncreaseLike(Long pospaceId, String email) {
+
+        Map<Long, Integer> likeMap = new HashMap<>();
 
         User user = userService.findUserByMail(email);
         String userIdentifier = user.getUserIdentifier();
 
-        Integer likeCount = null;
+        Pospace pospace = findOneWithReadLock(pospaceId);
 
-        int maxAttempts = 5;
-        for (int i = 0; i < maxAttempts; i++) {
-            try {
+        List<String> pospaceLikeUserIdentifiers = pospace.getPospaceLikeUsers();
 
-                Pospace pospace = getPospaceById(pospaceId);
-
-                List<String> pospaceLikeUserIdentifiers = pospace.getPospaceLikeUsers();
-
-                if (pospaceLikeUserIdentifiers.contains(userIdentifier)) {
-                    throw new IllegalStateException(
-                        PospaceExceptionMessage.ALREADY_LIKED_POST.getMessage());
-                }
-
-                pospaceLikeUserIdentifiers.add(user.getUserIdentifier());
-
-                if (!pospace.getWriter().equals(user)) {
-
-                    String messageUrl = clientUrl + "/space/pospace" + pospace.getId();
-
-                    notificationService.sendNotification(pospace.getWriter().getFcmToken(),
-                        "작성 게시물이 " + user.getNickName() + "님에게 좋아요를 받았습니다!", messageUrl);
-
-                }
-
-                likeCount = pospaceLikeUserIdentifiers.size();
-
-                return likeCount;
-
-
-            } catch (OptimisticLockException e) {
-                if (i == maxAttempts - 1) {
-                    throw new IllegalStateException(
-                        PospaceExceptionMessage.UNEXPECTED_ERROR.getMessage());
-                }
-            }
+        if (pospaceLikeUserIdentifiers.contains(userIdentifier)) {
+            throw new IllegalStateException(
+                PospaceExceptionMessage.ALREADY_LIKED_POST.getMessage());
         }
-        return likeCount;
-    }
 
+        pospaceLikeUserIdentifiers.add(user.getUserIdentifier());
+
+        if (!pospace.getWriter().equals(user)) {
+
+            String messageUrl = clientUrl + "/space/pospace" + pospace.getId();
+
+            notificationService.sendNotification(pospace.getWriter().getFcmToken(),
+                "작성 게시물이 " + user.getNickName() + "님에게 좋아요를 받았습니다!", messageUrl);
+
+        }
+
+        Integer likeCount = pospaceLikeUserIdentifiers.size();
+
+        likeMap.put(pospaceId, likeCount);
+        return likeMap;
+    }
 
     @Transactional
     public void reportPospace(ReportReq reportReq, String email) {
@@ -601,4 +586,11 @@ public class PospaceService {
                     PospaceExceptionMessage.NO_SUCH_POST.getMessage()));
     }
 
+
+    private Pospace findOneWithReadLock(Long pospaceId) {
+        return pospaceRepository.findOneWithReadLock(pospaceId)
+            .orElseThrow(
+                () -> new NoSuchElementException(
+                    PospaceExceptionMessage.NO_SUCH_POST.getMessage()));
+    }
 }

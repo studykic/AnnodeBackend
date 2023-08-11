@@ -5,6 +5,7 @@ import com.ikchi.annode.domain.entity.Pospace;
 import com.ikchi.annode.domain.entity.PospaceComment;
 import com.ikchi.annode.domain.entity.User;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
@@ -90,6 +91,16 @@ public class PospaceRepository {
     public Optional<Pospace> findOne(Long pospaceId) {
         try {
             Pospace pospace = em.find(Pospace.class, pospaceId);
+            return Optional.ofNullable(pospace);
+        } catch (NoResultException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Transactional
+    public Optional<Pospace> findOneWithReadLock(Long pospaceId) {
+        try {
+            Pospace pospace = em.find(Pospace.class, pospaceId, LockModeType.PESSIMISTIC_READ);
             return Optional.ofNullable(pospace);
         } catch (NoResultException e) {
             return Optional.empty();
