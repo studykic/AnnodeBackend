@@ -24,7 +24,7 @@
 
 이런 다양하고 의미 있는 경험을 통해 Annode를 기획하게 되었습니다.
 
-## 사용한 기술
+## 사용된 기술스택
 
 ### 백엔드
 
@@ -33,22 +33,29 @@
 - Spring Security
 - Spring Websocket ( with SockJs )
 
-### 데이터베이스
-
-- Mysql 8.0.33
-
 ### 프론트엔드
 
 - React.js
 - SockJs-client
 - Styled Components
 
-### 개발언어
+### DevOps
+
+- AWS EC2 , S3 , RDS ,CloudFront , ElastiCache
+- RDS ( Mysql ) , ElastiCache( Redis )
+
+### Language
 
 - Java
 - JavaScript
 
 ## Android 앱 & 웹사이트
+
+Application 체험을 위해 공개 테스트 계정을 사용하실수있습니다!
+
+ID : dummyportfolio@example.com 
+
+PassWord : kic12190
 
 <a href='https://play.google.com/store/apps/details?id=com.kic.pospace'><img alt='Google Play에서 받기' src='https://play.google.com/intl/ko/badges/static/images/badges/ko_badge_web_generic.png' width='200'/></a>
 
@@ -165,3 +172,10 @@ Spring Security에서 제공하는 인가가 필요한 엔드포인트를 유저
    이때 파이어베이스의 FCM토큰을 통해 기능을 만들었으며 안드로이드 MainActivity가 onCreate되고, 리액트의 베이스 컴포넌트가 첫 마운트된다면 FCM토큰을 서버로
    전송하게되어 서버는 이를 DB에 저장해두어 푸시알림기능을 사용할수있게됩니다 또한 어플이 제거 , 업데이트 , 데이터삭제 될경우를 대비하여 어플의 onCreate
    라이프사이클마다 FCM토큰을 항시 갱신시키게됩니다
+
+
+### 연관 GitHub Repository
+
+### [Annode Frontend](https://github.com/studykic/AnnodeFrontend)
+
+### [Annode Backend](https://github.com/studykic/AnnodeBackend)
