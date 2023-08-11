@@ -1,6 +1,5 @@
 package com.ikchi.annode.Exception;
 
-import com.ikchi.annode.Exception.custom.NotOpenHoursException;
 import jakarta.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.NoSuchElementException;
@@ -96,12 +95,4 @@ public class GlobalExceptionHandler {
         e.printStackTrace();
         return e.getMessage();
     }
-
-    @ResponseStatus(value = HttpStatus.FORBIDDEN)
-    @ExceptionHandler(NotOpenHoursException.class)
-    public String handleNotOpenHoursException(NotOpenHoursException e) {
-        e.printStackTrace();
-        return e.getMessage();
-    }
-
 }

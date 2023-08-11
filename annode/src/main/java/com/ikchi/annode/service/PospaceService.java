@@ -1,6 +1,7 @@
 package com.ikchi.annode.service;
 
 
+import com.ikchi.annode.Enum.PospaceExceptionMessage;
 import com.ikchi.annode.domain.Constants.Visibility;
 import com.ikchi.annode.domain.dto.ReportReq;
 import com.ikchi.annode.domain.dto.pospace.PagePospaceRes;
@@ -53,13 +54,14 @@ public class PospaceService {
     @Transactional
     public void createPospace(PospaceReq pospaceReq, String userMail) {
 
-        User user = userService.getUserByEmail(userMail);
+        User user = userService.findUserByMail(userMail);
         List<String> pospaceImgFileUrlList = null;
 
         if ((pospaceReq.getPospaceContent() == null || pospaceReq.getPospaceContent().equals(""))
             && (pospaceReq.getProfileImageFiles() == null || pospaceReq.getProfileImageFiles()
             .isEmpty())) {
-            throw new IllegalStateException("글과 사진중 하나는 존재해야합니다");
+            throw new IllegalStateException(
+                PospaceExceptionMessage.POST_OR_IMAGE_REQUIRED.getMessage());
         }
 
         if (pospaceReq.getProfileImageFiles() != null && !pospaceReq.getProfileImageFiles()
@@ -73,7 +75,8 @@ public class PospaceService {
         try {
             visibility = Visibility.valueOf(pospaceReq.getVisibility().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Pospace Type이 올바르지 않습니다");
+            throw new IllegalArgumentException(
+                PospaceExceptionMessage.INVALID_POSPACE_TYPE.getMessage());
         }
 
         Pospace pospace = new Pospace(user, pospaceReq.getPospaceContent(),
@@ -108,14 +111,13 @@ public class PospaceService {
     public void updatePospace(PospaceUpdate pospaceUpdate, String email) {
 
         // 게시글 수정권한 있는지 확인
+        Pospace pospace = getPospaceById(pospaceUpdate.getPospaceId());
 
-        Pospace pospace = pospaceRepository.findOne(pospaceUpdate.getPospaceId())
-            .orElseThrow(() -> new NoSuchElementException("찾을수없는 게시글입니다"));
-
-        User user = userService.getUserByEmail(email);
+        User user = userService.findUserByMail(email);
 
         if (!pospace.getWriter().equals(user)) {
-            throw new IllegalStateException("수정할수있는 권한이 없습니다");
+            throw new IllegalStateException(
+                PospaceExceptionMessage.NO_EDIT_PERMISSION.getMessage());
         }
 
         if (pospaceUpdate.getMaxAnnode() != null) {
@@ -157,9 +159,9 @@ public class PospaceService {
 
     @Transactional
     public void deletePospace(Long pospaceId, String email) {
-        User user = userService.getUserByEmail(email);
-        Pospace pospace = pospaceRepository.findOne(pospaceId)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 pospace입니다"));
+        User user = userService.findUserByMail(email);
+
+        Pospace pospace = getPospaceById(pospaceId);
 
         if (pospace.getWriter().equals(user)) {
             fileUploadService.deleteImgFile(pospace.getPospaceImgFileUrlList());
@@ -173,8 +175,7 @@ public class PospaceService {
     @Transactional
     public PospaceInfoRes getPospaceInfo(Long pospaceId, String email) {
 
-        Pospace pospace = pospaceRepository.findOne(pospaceId)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 pospace입니다"));
+        Pospace pospace = getPospaceById(pospaceId);
 
         User writer = pospace.getWriter();
 
@@ -199,7 +200,7 @@ public class PospaceService {
             }
         }
 
-        User user = userService.getUserByEmail(email);
+        User user = userService.findUserByMail(email);
 
         String writerIdentifier = pospaceInfoRes.getWriterSimpleRes().getUserIdentifier();
 
@@ -277,7 +278,7 @@ public class PospaceService {
             publicPospaceIdx,
             pageable);
 
-        User user = userService.getUserByEmail(email);
+        User user = userService.findUserByMail(email);
 
         Page<PagePospaceRes> crossFollowPagePospaceRes = pospaceRepository.findRoomsBySearch3(
             isFirstReq,
@@ -322,9 +323,9 @@ public class PospaceService {
 
         // 계정이 없으면 글은 접근금지
 
-        User targetUser = userService.getUserByIdentifier(userIdentifier);
+        User targetUser = userService.findUserByIdentifier(userIdentifier);
 
-        User user = userService.getUserByEmail(email);
+        User user = userService.findUserByMail(email);
 
         boolean followUserCheck1 = userService.getFollowUserCheck(user, targetUser);
         boolean followUserCheck2 = userService.getFollowUserCheck(targetUser, user);
@@ -357,10 +358,10 @@ public class PospaceService {
         String email) {
 
         Long pospaceId = pospaceCommentCreateReq.getPospaceId();
-        Pospace pospace = pospaceRepository.findOne(pospaceId)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 Pospace입니다"));
 
-        User user = userService.getUserByEmail(email);
+        Pospace pospace = getPospaceById(pospaceId);
+
+        User user = userService.findUserByMail(email);
         PospaceComment pospaceComment = new PospaceComment(pospace,
             user, pospaceCommentCreateReq.getPospaceCommentContent());
 
@@ -427,9 +428,10 @@ public class PospaceService {
     @Transactional
     public Map<String, String> pospaceAccess(Long pospaceId, String userMail) {
 
-        User user = userService.getUserByEmail(userMail);
-        Pospace pospace = pospaceRepository.findOne(pospaceId)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 Pospace입니다"));
+        User user = userRepository.findUserByMailWithLock(userMail)
+            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다"));
+
+        Pospace pospace = getPospaceById(pospaceId);
 
         if (isUserAlreadyInRoom(user)) {
             throw new IllegalStateException("이미 접속중인 방이있습니다");
@@ -486,7 +488,6 @@ public class PospaceService {
 
     }
 
-
     // 방에 입장중인 유저인지 확인
     public boolean isUserAlreadyInRoom(User user) {
 
@@ -529,7 +530,7 @@ public class PospaceService {
     @Transactional
     public Integer pospaceIncreaseLike(Long pospaceId, String email) {
 
-        User user = userService.getUserByEmail(email);
+        User user = userService.findUserByMail(email);
         String userIdentifier = user.getUserIdentifier();
 
         Integer likeCount = null;
@@ -538,8 +539,7 @@ public class PospaceService {
         for (int i = 0; i < maxAttempts; i++) {
             try {
 
-                Pospace pospace = pospaceRepository.findOne(pospaceId)
-                    .orElseThrow(() -> new NoSuchElementException("존재하지 않는 Pospace입니다"));
+                Pospace pospace = getPospaceById(pospaceId);
 
                 List<String> pospaceLikeUserIdentifiers = pospace.getPospaceLikeUsers();
 
@@ -575,32 +575,13 @@ public class PospaceService {
         return likeCount;
     }
 
-//    @Transactional
-//    public void pospaceIncreaseLike(Long pospaceId, String email) {
-//
-//        User user = userService.getUserByEmail(email);
-//
-//        Pospace pospace = pospaceRepository.findOne(pospaceId)
-//            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 Pospace입니다"));
-//
-//        List<String> pospaceLikeUsers = pospace.getPospaceLikeUsers();
-//
-//        String userIdentifier = user.getUserIdentifier();
-//
-//        if (pospaceLikeUsers.contains(userIdentifier)) {
-//            throw new IllegalStateException("이미 좋아요한 게시물입니다");
-//        }
-//
-//        pospaceLikeUsers.add(user.getUserIdentifier());
-//    }
 
     @Transactional
     public void reportPospace(ReportReq reportReq, String email) {
 
-        User user = userService.getUserByEmail(email);
+        User user = userService.findUserByMail(email);
 
-        Pospace pospace = pospaceRepository.findOne(reportReq.getPospaceId())
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 Pospace입니다"));
+        Pospace pospace = getPospaceById(reportReq.getPospaceId());
 
         ReportUserAndPospace reportUserAndPospace = new ReportUserAndPospace(user,
             reportReq.getReportReason(), pospace);
@@ -608,5 +589,12 @@ public class PospaceService {
         reportUserRepository.save(reportUserAndPospace);
     }
 
+
+    private Pospace getPospaceById(Long pospaceId) {
+        return pospaceRepository.findOne(pospaceId)
+            .orElseThrow(
+                () -> new NoSuchElementException(
+                    PospaceExceptionMessage.NO_SUCH_POST.getMessage()));
+    }
 
 }

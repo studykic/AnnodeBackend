@@ -6,6 +6,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.ikchi.annode.Enum.FileExceptionMessage;
+import com.ikchi.annode.Enum.ServiceEnum.FileUploadServiceEnum;
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -58,7 +60,8 @@ public class FileUploadService {
 
                 // 파일 이름을 유저를 상위 디렉토리로 한뒤 현재 시간 + UUID + 파일확장자로 설정함
                 String fileName = uploadDir + "/" + userIdentifier + "/"
-                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS"))
+                    + LocalDateTime.now().format(
+                    DateTimeFormatter.ofPattern(FileUploadServiceEnum.getDateTimeFormatPattern()))
                     + UUID.randomUUID().toString().substring(0, 8)
                     + fileExtension;
 
@@ -72,23 +75,21 @@ public class FileUploadService {
                 fileUrls.add(fileUrl);
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new IllegalStateException("이미지 업로드중 문제가 발생하였습니다.");
+                throw new IllegalStateException(
+                    FileExceptionMessage.IMAGE_UPLOAD_ERROR.getMessage());
             }
         }
 
         return fileUrls;
     }
 
+
     private void fileExtensionCheck(String fileExtension) {
-        if (!fileExtension.equalsIgnoreCase(".jpg") &&
-            !fileExtension.equalsIgnoreCase(".jpeg") &&
-            !fileExtension.equalsIgnoreCase(".png") &&
-            !fileExtension.equalsIgnoreCase(".gif") &&
-            !fileExtension.equalsIgnoreCase(".svg") &&
-            !fileExtension.equalsIgnoreCase(".webp") &&
-            !fileExtension.equalsIgnoreCase(".ico")
-        ) {
-            throw new IllegalArgumentException("지원하지 않는 파일 형식입니다.");
+        List<String> allowedFileExtensions = FileUploadServiceEnum.getAllowedFileExtensions();
+
+        if (!allowedFileExtensions.contains(fileExtension.toLowerCase())) {
+            throw new IllegalArgumentException(
+                FileExceptionMessage.UNSUPPORTED_FILE_FORMAT.getMessage());
         }
     }
 
@@ -110,8 +111,7 @@ public class FileUploadService {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("로그, 이미지 삭제 중 문제가 발생하였습니다.");
-            throw new IllegalStateException("이미지 삭제 중 문제가 발생하였습니다.");
+            throw new IllegalStateException(FileExceptionMessage.IMAGE_DELETE_ERROR.getMessage());
         }
     }
 

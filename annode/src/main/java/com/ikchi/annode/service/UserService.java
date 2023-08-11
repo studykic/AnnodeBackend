@@ -4,6 +4,7 @@ package com.ikchi.annode.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ikchi.annode.Enum.UserExceptionMessage;
 import com.ikchi.annode.domain.dto.user.AnnodeFollowRes;
 import com.ikchi.annode.domain.dto.user.FollowAcceptReq;
 import com.ikchi.annode.domain.dto.user.FollowRes;
@@ -15,6 +16,7 @@ import com.ikchi.annode.domain.dto.user.PwResetInfoReq;
 import com.ikchi.annode.domain.dto.user.SignUpReq;
 import com.ikchi.annode.domain.dto.user.SmsAuthReq;
 import com.ikchi.annode.domain.dto.user.UserInfo;
+import com.ikchi.annode.domain.dto.user.UserPhoneInfoRes;
 import com.ikchi.annode.domain.dto.user.UserSimpleRes;
 import com.ikchi.annode.domain.entity.AnnodeFollow;
 import com.ikchi.annode.domain.entity.BanInfo;
@@ -113,7 +115,7 @@ public class UserService {
                 Optional<User> findUser = userRepository.findUserByPhone(phoneNumber);
                 if (findUser.isPresent()) {
                     throw new IllegalStateException(
-                        "이미 가입되어있는 전화번호입니다 : " + findUser.get().getPhoneNumber());
+                        UserExceptionMessage.ALREADY_REGISTERED_PHONE.getMessage());
                 }
 
                 // 수신자 메일에게 보낼 인증 코드 전송 및 Redis를 통한 분산캐시
@@ -151,7 +153,7 @@ public class UserService {
                 Optional<User> findUser = userRepository.findUserByMail(email);
                 if (findUser.isPresent()) {
                     throw new IllegalStateException(
-                        "이미 가입되어있는 email입니다 : " + findUser.get().getEmail());
+                        UserExceptionMessage.ALREADY_REGISTERED_EMAIL.getMessage());
                 }
 
                 // 수신자 메일에게 보낼 인증 코드 전송 및 Redis를 통한 분산캐시
@@ -160,26 +162,13 @@ public class UserService {
 
             }
             break;
+            case "accountRemove":
             case "resetPassword": {
                 Optional<User> userByMail = userRepository.findUserByMail(email);
                 if (!userByMail.isPresent()) {
                     throw new IllegalStateException(
-                        "가입되어있지 않은 email입니다 : " + userByMail.get().getEmail());
-                }
+                        UserExceptionMessage.UNREGISTERED_EMAIL.getMessage());
 
-                // 수신자 메일에게 보낼 인증 코드 전송 및 Redis를 통한 분산캐시
-                String authCode = generateAndSendMailAuthCode(email);
-                valOps.set(email, authCode, 5, TimeUnit.MINUTES);
-
-            }
-            break;
-            case "accountRemove": {
-
-                Optional<User> userByMail = userRepository.findUserByMail(email);
-
-                if (!userByMail.isPresent()) {
-                    throw new IllegalStateException(
-                        "가입되어있지 않은 email입니다 : " + userByMail.get().getEmail());
                 }
 
                 // 수신자 메일에게 보낼 인증 코드 전송 및 Redis를 통한 분산캐시
@@ -198,7 +187,8 @@ public class UserService {
     public String generateAndSendMailAuthCode(String email) {
         // 인증번호를 만들어서 수신자 메일에 전송하고 인증번호를 반환한다
         return registerMail.sendSimpleMessage(email)
-            .orElseThrow(() -> new IllegalStateException("인증 메일 전송에 실패했습니다"));
+            .orElseThrow(() -> new IllegalStateException(
+                UserExceptionMessage.FAILED_EMAIL_VERIFICATION.getMessage()));
     }
 
     // 인증번호 생성 및 전송
@@ -250,37 +240,42 @@ public class UserService {
             Boolean isBanUser = userRepository.banUserCheck(signUpReq.getPhoneNumber(),
                 signUpReq.getEmail());
             if (isBanUser) {
-                throw new IllegalArgumentException("회원가입 불가한 유저입니다");
+                throw new IllegalArgumentException(
+                    UserExceptionMessage.UNAUTHORIZED_REGISTRATION.getMessage());
             }
 
             Optional<User> findUserByEmail = userRepository.findUserByMail(email);
             if (findUserByEmail.isPresent()) {
                 throw new IllegalStateException(
-                    "이미 가입되어있는 이메일입니다 : " + findUserByEmail.get().getEmail());
+                    UserExceptionMessage.ALREADY_REGISTERED_EMAIL.getMessage());
             }
 
             Optional<User> findUserByPhone = userRepository.findUserByPhone(phoneNumber);
             if (findUserByPhone.isPresent()) {
                 throw new IllegalStateException(
-                    "이미 가입되어있는 PhoneNumber입니다 : " + findUserByPhone.get().getPhoneNumber());
+                    UserExceptionMessage.ALREADY_REGISTERED_PHONE.getMessage());
             }
 
             if (!mailAuthCode.equals(signUpReq.getMailAuthCode())) {
-                throw new IllegalArgumentException("Email 코드가 일치하지 않습니다");
+                throw new IllegalArgumentException(
+                    UserExceptionMessage.EMAIL_CODE_MISMATCH.getMessage());
             }
 
             if (!phoneAuthCode.equals(signUpReq.getPhoneAuthCode())) {
-                throw new IllegalArgumentException("PhoneNumber 코드가 일치하지 않습니다");
+                throw new IllegalArgumentException(
+                    UserExceptionMessage.PHONE_CODE_MISMATCH.getMessage());
             }
 
             int nickNameLength = signUpReq.getNickName().length();
             if (nickNameLength < 2 || nickNameLength > 10) {
-                throw new IllegalArgumentException("닉네임은 2자리 이상 10자리 이하로 입력해주세요.");
+                throw new IllegalArgumentException(
+                    UserExceptionMessage.NICKNAME_LENGTH_CONSTRAINT.getMessage());
             }
 
             // 비밀번호는 8자리 이상이며 영문자, 숫자를 포함해야 한다
             if (!signUpReq.getPassword().matches("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@!#*?]{8,}$")) {
-                throw new IllegalArgumentException("비밀번호를 다시 확인해주세요");
+                throw new IllegalArgumentException(
+                    UserExceptionMessage.PASSWORD_MISMATCH.getMessage());
             }
 
             // user을 생성한다 이때 기본 권한은 ROLE_USER로 설정한다
@@ -312,7 +307,8 @@ public class UserService {
             redisTemplate.delete(phoneNumber);
 
         } else {
-            throw new IllegalStateException("인증번호가 유효하지않습니다.");
+            throw new IllegalStateException(
+                UserExceptionMessage.INVALID_VERIFICATION_CODE.getMessage());
         }
     }
 
@@ -320,8 +316,7 @@ public class UserService {
     // 유저의 follow중인 유저목록 조회
     public List<FollowRes> getFollowList(String email) {
 
-        User user = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User user = findUserByMail(email);
 
         List<UserRelationShip> userRelationShipList = userRepository.findUserRelationShipList(user);
 
@@ -354,8 +349,7 @@ public class UserService {
     @Transactional
     public List<UserRelationShip> getCrossFollowsByUser(String email) {
 
-        User targetUser = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("User not found"));
+        User targetUser = findUserByMail(email);
 
         List<UserRelationShip> followedRelationShipList = userRepository.findUserRelationShipList(
             targetUser);
@@ -389,44 +383,16 @@ public class UserService {
         return userSimpleResList;
     }
 
-    public User getUserByIdentifier(String userIdentifier) {
-
-        User user = userRepository.findUserByIdentifier(userIdentifier)
-            .orElseThrow(() -> new NoSuchElementException("존재하지않는 유저입니다"));
-
-        return user;
-    }
-
-    public FollowRes getFollowInfo(String email, String userIdentifier) {
-
-        User user = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
-
-        User identifierUser = userRepository.findUserByIdentifier(userIdentifier)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
-
-//        UserRelationship userRelationshipEntity = userRepository.findFriend(user, identifierUser)
-//            .orElseThrow(() -> new NoSuchElementException("유효하지않은 친구입니다"));
-//
-//        User friend = userRelationshipEntity.getFollowUser();
-//        FollowRes res = new FollowRes(friend.getNickName(),
-//            friend.getUserIdentifier(), friend.getprofileImgFileUrl());
-
-        return null;
-    }
-
 
     // Follow 신청을 유효성 검사를 통과후 수행 - Follow 수신자의 계정 공개여부에 따라 즉시성사 체크
     public void requestAnnodeFollow(String email, String userIdentifier) {
 
-        User requester = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User requester = findUserByMail(email);
 
-        User receiver = userRepository.findUserByIdentifier(userIdentifier)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User receiver = findUserByIdentifier(email);
 
         if (requester.equals(receiver)) {
-            throw new IllegalStateException("자신을 팔로워할수 없습니다");
+            throw new IllegalStateException(UserExceptionMessage.SELF_FOLLOW_ATTEMPT.getMessage());
         }
 
         List<AnnodeFollow> annodeFollowList = userRepository.findAnnodeFollowByRequester(requester);
@@ -440,11 +406,12 @@ public class UserService {
             .anyMatch(relationShip -> relationShip.getFollowingUser().equals(receiver));
 
         if (isDoubleFollowReq) {
-            throw new IllegalArgumentException("이미 같은 어노드에게 Follow 요청을 보냈습니다");
+            throw new IllegalArgumentException(
+                UserExceptionMessage.DUPLICATE_FOLLOW_REQUEST.getMessage());
         }
 
         if (isAlreadyFollow) {
-            throw new IllegalArgumentException("이미 " + receiver.getNickName() + "님과 Follow 관계입니다");
+            throw new IllegalArgumentException(UserExceptionMessage.ALREADY_FOLLOWING.getMessage());
         }
 
         // 만약 follow 수신자의 계정이 공개계정이라면 즉시 친구추가시키기
@@ -465,11 +432,9 @@ public class UserService {
     // unFollow
     public void unFollow(String email, String userIdentifier) {
 
-        User requester = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User requester = findUserByMail(email);
 
-        User receiver = userRepository.findUserByIdentifier(userIdentifier)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User receiver = findUserByIdentifier(userIdentifier);
 
         List<UserRelationShip> requesterRelationShipList = userRepository.findUserRelationShipList(
             requester);
@@ -479,7 +444,8 @@ public class UserService {
             .findFirst();
 
         if (!userRelationShip.isPresent()) {
-            throw new IllegalArgumentException(receiver.getNickName() + "님과 Follow 관계가 아닙니다");
+            throw new IllegalArgumentException(
+                UserExceptionMessage.NOT_FOLLOWING_USER.getMessage());
         }
 
         userRepository.deleteUserRelationShip(userRelationShip.get());
@@ -488,8 +454,7 @@ public class UserService {
     // 유저에게 제안된 follow 목록 조회
     public List<AnnodeFollowRes> getAnnodeFollowList(String email) {
 
-        User receiver = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User receiver = findUserByMail(email);
 
         List<AnnodeFollow> annodeFollowList = userRepository.findAnnodeFollowByReceiver(
             receiver);
@@ -509,12 +474,12 @@ public class UserService {
     // 유저에게 제안된 follow 수락 거절을 수행
     public void acceptFollowRequest(String email, FollowAcceptReq followAcceptReq) {
 
-        User receiver = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User receiver = findUserByMail(email);
 
         AnnodeFollow annodeFollow = userRepository.findAnnodeFollow(
                 followAcceptReq.getAnnodeFollowId())
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 Follow 요청입니다"));
+            .orElseThrow(() -> new NoSuchElementException(
+                UserExceptionMessage.NON_EXISTENT_FOLLOW_REQUEST.getMessage()));
 
         User requester = annodeFollow.getRequester();
 
@@ -524,7 +489,7 @@ public class UserService {
             .anyMatch(relation -> relation.getFollowingUser().equals(receiver));
 
         if (isAlreadyFollowing) {
-            throw new IllegalArgumentException("이미 " + requester.getNickName() + "님과 Follow 관계입니다");
+            throw new IllegalArgumentException(UserExceptionMessage.ALREADY_FOLLOWING.getMessage());
         }
 
         if (followAcceptReq.getAccept()) {
@@ -541,8 +506,7 @@ public class UserService {
 
     public List<UserRelationShip> getFollowerRelationShipList(String email) {
 
-        User targetUser = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("찾을수 없는 유저입니다"));
+        User targetUser = findUserByMail(email);
 
         List<UserRelationShip> followerRelationShipList = userRepository.findFollowerRelationShipList(
             targetUser);
@@ -564,24 +528,26 @@ public class UserService {
         // 만료시간 , 중복가입 , 인증번호 일치 여부 검사
         if (mailAuthCode != null) {
 
-            User user = userRepository.findUserByMail(email)
-                .orElseThrow(() -> new NoSuchElementException("가입되지 않은 이메일입니다."));
+            User user = findUserByMail(email);
 
             // 서버에서는 mailAuthCode를 암호화하여 저장하기때문에 서버에 저장된 mailAuthCode 비교시 matches() 메소드를 사용한다.
             if (!mailAuthCode.equals(pwResetInfoReq.getMailAuthCode())) {
-                throw new IllegalArgumentException("이메일 인증번호가 일치하지 않습니다");
+                throw new IllegalArgumentException(
+                    UserExceptionMessage.INVALID_VERIFICATION_CODE.getMessage());
             }
 
             // 비밀번호는 8자리 이상이며 영문자, 숫자를 포함해야 한다
             if (!pwResetInfoReq.getResetPassword()
                 .matches("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@!#*?]{8,}$")) {
-                throw new IllegalArgumentException("비밀번호를 다시 확인해주세요");
+                throw new IllegalArgumentException(
+                    UserExceptionMessage.PASSWORD_MISMATCH.getMessage());
             }
 
             user.setPassword(passwordEncoder.encode(pwResetInfoReq.getResetPassword()));
             redisTemplate.delete(email);
         } else {
-            throw new IllegalStateException("인증번호가 유효하지않습니다.");
+            throw new IllegalStateException(
+                UserExceptionMessage.INVALID_VERIFICATION_CODE.getMessage());
         }
     }
 
@@ -589,15 +555,14 @@ public class UserService {
     @Transactional
     public LoginRes login(LonginReq request) {
 
-        User user = userRepository.findUserByMail(request.getEmail())
-            .orElseThrow(() -> new NoSuchElementException("가입되지 않은 E-MAIL 입니다."));
+        User user = findUserByMail(request.getEmail());
 
         boolean isAdmit = user.getRoles().stream()
             .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
 
         // 스프링 시큐리티의 암호화된 비밀번호 유효성 검사
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword()) && !isAdmit) {
-            throw new IllegalArgumentException("잘못된 비밀번호입니다.");
+            throw new IllegalArgumentException(UserExceptionMessage.PASSWORD_MISMATCH.getMessage());
         }
 
         // 로그인 시 토큰을 발급한다.
@@ -615,8 +580,7 @@ public class UserService {
         UserSimpleRes userSimpleRes = null;
         try {
 
-            User user = userRepository.findUserByMail(email)
-                .orElseThrow(() -> new NoSuchElementException("가입되지 않은 E-MAIL 입니다."));
+            User user = findUserByMail(email);
 
             ObjectMapper mapper = new ObjectMapper();
             Map<String, String> map = mapper.readValue(fcmToken, Map.class);
@@ -641,17 +605,9 @@ public class UserService {
     }
 
 
-    public User getUserByEmail(String mail) {
-        User user = userRepository.findUserByMail(mail)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다."));
-        return user;
-    }
+    public UserInfo getUserInfo(String email, String userIdentifier) {
 
-
-    public UserInfo getUserInfo(String userMail, String userIdentifier) {
-
-        User targetUser = userRepository.findUserByIdentifier(userIdentifier)
-            .orElseThrow(() -> new NoSuchElementException("존재하지않는 유저입니다"));
+        User targetUser = findUserByIdentifier(userIdentifier);
 
         List<UserRelationShip> followerRelationShipList = getFollowerRelationShipList(
             targetUser.getEmail());
@@ -663,10 +619,9 @@ public class UserService {
 
         // user가 비공개 계정인경우 팔로우되어있는지 확인하고
 
-        if (userMail != null) {
+        if (email != null) {
 
-            User user = userRepository.findUserByMail(userMail)
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다"));
+            User user = findUserByMail(email);
 
             boolean isFollowing = followerRelationShipList.stream().anyMatch(item ->
                 item.getUser().equals(user));
@@ -681,10 +636,9 @@ public class UserService {
         return userInfo;
     }
 
-    public UserInfo getUserMyInfo(String userMail) {
+    public UserInfo getUserMyInfo(String email) {
 
-        User user = userRepository.findUserByMail(userMail)
-            .orElseThrow(() -> new NoSuchElementException("존재하지않는 유저입니다"));
+        User user = findUserByMail(email);
 
         List<UserRelationShip> followerRelationShipList = getFollowerRelationShipList(
             user.getEmail());
@@ -700,7 +654,8 @@ public class UserService {
     public UserSimpleRes getUserSearch(String userSearchInput) {
 
         User targetUser = userRepository.findUserByIdentifierOrEmail(userSearchInput)
-            .orElseThrow(() -> new NoSuchElementException("존재하지않는 유저입니다"));
+            .orElseThrow(() -> new NoSuchElementException(
+                UserExceptionMessage.NON_EXISTENT_USER.getMessage()));
 
         UserSimpleRes userSimpleRes = new UserSimpleRes(targetUser.getUserIdentifier(),
             targetUser.getNickName(), targetUser.getProfileImgFileUrl());
@@ -709,24 +664,24 @@ public class UserService {
     }
 
     @Transactional
-    public List<UserSimpleRes> getUserListByPhone(List<PhoneInfo> phoneInfoList) {
+    public List<UserPhoneInfoRes> getUserListByPhone(List<PhoneInfo> phoneInfoList) {
 
         List<String> phoneNumberList = phoneInfoList.stream().map(PhoneInfo::getPhoneNumber)
             .collect(Collectors.toList());
 
         List<User> userList = userRepository.findUserListByPhone(phoneNumberList);
 
-        List<UserSimpleRes> userSimpleResList = userList.stream().map(
-            user -> new UserSimpleRes(user.getUserIdentifier(), user.getNickName(),
-                user.getProfileImgFileUrl())).collect(Collectors.toList());
+        List<UserPhoneInfoRes> userSimpleResList = userList.stream()
+            .map(user -> new UserPhoneInfoRes(user.getUserIdentifier(), user.getNickName(),
+                user.getProfileImgFileUrl(), user.getPhoneNumber())).collect(Collectors.toList());
 
         return userSimpleResList;
     }
 
     // 유저의 정보를 수정한다 이때 유저 프로필 이미지가 변경된다면 새 이미지를 저장시킨뒤 기존 이미지를 삭제하고 user의 profileImgFileUrl을 변경시킨다
-    public void userUpdate(String userMail, String nickName, MultipartFile profileImgFile) {
-        User user = userRepository.findUserByMail(userMail)
-            .orElseThrow(() -> new NoSuchElementException("가입되지 않은 E-MAIL 입니다."));
+    public void userUpdate(String email, String nickName, MultipartFile profileImgFile) {
+
+        User user = findUserByMail(email);
 
         // userUpdate 중 null이 아닌값이 있으면 그값을 user의 setter로 교체
         if (profileImgFile != null) {
@@ -752,7 +707,8 @@ public class UserService {
 
             if (nickName.length() > 20 || nickName.length() < 2) {
 
-                throw new NoSuchElementException("올바른 닉네임 2자리 이상 20자리 이하로 입력해주세요.");
+                throw new NoSuchElementException(
+                    UserExceptionMessage.INVALID_NICKNAME_LENGTH.getMessage());
             }
             user.setNickName(nickName);
         }
@@ -760,12 +716,13 @@ public class UserService {
     }
 
 
-    public void deleteUser(String userMail) {
-        User user = userRepository.findUserByMail(userMail)
-            .orElseThrow(() -> new NoSuchElementException("가입되지 않은 E-MAIL 입니다."));
+    public void deleteUser(String email) {
+
+        User user = findUserByMail(email);
 
         if (user.getJoinedRoom() != null) {
-            throw new IllegalStateException("참여중인 대화방에서 나간뒤 계정탈퇴를 시도하세요");
+            throw new IllegalStateException(
+                UserExceptionMessage.EXIT_CHAT_BEFORE_DELETION.getMessage());
         }
 
         // 유저의 기본 프로필 이미지가 아닐때만 이미지를 삭제한다
@@ -785,34 +742,33 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    public void userBan(String userMail, String targetIdentifier) {
-        User admin = userRepository.findUserByMail(userMail)
-            .orElseThrow(() -> new NoSuchElementException("가입되지 않은 E-MAIL 입니다."));
+    public void userBan(String email, String targetIdentifier) {
+
+        User admin = findUserByMail(email);
 
         if (!admin.isAdmin()) {
-            throw new IllegalArgumentException("요청할수 있는 권한이 없습니다");
+            throw new IllegalArgumentException(UserExceptionMessage.NOT_ADMIN_ACCOUNT.getMessage());
         }
 
-        User user = userRepository.findUserByIdentifier(targetIdentifier)
-            .orElseThrow(() -> new NoSuchElementException("가입되지 않은 E-MAIL 입니다."));
+        User targetUser = findUserByIdentifier(targetIdentifier);
 
         // 유저의 기본 프로필 이미지가 아닐때만 이미지를 삭제한다
-        if (!user.getProfileImgFileUrl().equals(defaultProfileImg)) {
+        if (!targetUser.getProfileImgFileUrl().equals(defaultProfileImg)) {
 
             List<String> deleteSingleImgUrlList = Collections.singletonList(
-                user.getProfileImgFileUrl());
+                targetUser.getProfileImgFileUrl());
 
             fileUploadService.deleteImgFile(deleteSingleImgUrlList);
         }
 
-        deleteRelationShips(user);
-        deleteReports(user);
-        deletePospaceUserTagList(user);
-        deleteAnnodeFollowByUser(user);
+        deleteRelationShips(targetUser);
+        deleteReports(targetUser);
+        deletePospaceUserTagList(targetUser);
+        deleteAnnodeFollowByUser(targetUser);
 
-        userRepository.delete(user);
+        userRepository.delete(targetUser);
 
-        BanInfo banInfo = new BanInfo(user.getEmail(), user.getPhoneNumber());
+        BanInfo banInfo = new BanInfo(targetUser.getEmail(), targetUser.getPhoneNumber());
         userRepository.banInfoAdd(banInfo);
     }
 
@@ -855,9 +811,7 @@ public class UserService {
     public void logOut(String email, String fcmToken) {
 
         try {
-            User user = userRepository.findUserByMail(email)
-                .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다"));
-
+            User user = findUserByMail(email);
             // fcm토큰을 가진 기기에서 로그아웃 수행시 null로 변경
 
             ObjectMapper mapper = new ObjectMapper();
@@ -876,6 +830,19 @@ public class UserService {
         }
 
     }
+
+    public User findUserByMail(String email) {
+        return userRepository.findUserByMail(email)
+            .orElseThrow(
+                () -> new NoSuchElementException(
+                    UserExceptionMessage.NON_EXISTENT_USER.getMessage()));
+    }
+
+    public User findUserByIdentifier(String email) {
+        return userRepository.findUserByIdentifier(email).orElseThrow(
+            () -> new NoSuchElementException(UserExceptionMessage.NON_EXISTENT_USER.getMessage()));
+    }
+
 }
 
 

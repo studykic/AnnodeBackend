@@ -12,6 +12,7 @@ import com.ikchi.annode.domain.dto.user.PwResetInfoReq;
 import com.ikchi.annode.domain.dto.user.SignUpReq;
 import com.ikchi.annode.domain.dto.user.SmsAuthReq;
 import com.ikchi.annode.domain.dto.user.UserInfo;
+import com.ikchi.annode.domain.dto.user.UserPhoneInfoRes;
 import com.ikchi.annode.domain.dto.user.UserSimpleRes;
 import com.ikchi.annode.domain.entity.UserRelationShip;
 import com.ikchi.annode.service.FileUploadService;
@@ -113,15 +114,6 @@ public class UserController {
 
     }
 
-    // Following 유저를 조회
-    @GetMapping("/user/follow/one")
-    public FollowRes getFollowInfo(@JwtToUser String email,
-        @RequestParam String userIdentifier) {
-
-        FollowRes annodeFollowList = userService.getFollowInfo(email, userIdentifier);
-
-        return annodeFollowList;
-    }
 
     // Follow 목록을 조회
     @GetMapping("/user/follow/list")
@@ -203,9 +195,9 @@ public class UserController {
     }
 
     @PostMapping("/user/phone/list")
-    public List<UserSimpleRes> getUserListByPhone(@RequestBody List<PhoneInfo> phoneInfoList) {
+    public List<UserPhoneInfoRes> getUserListByPhone(@RequestBody List<PhoneInfo> phoneInfoList) {
 
-        List<UserSimpleRes> userInfoList = userService.getUserListByPhone(phoneInfoList);
+        List<UserPhoneInfoRes> userInfoList = userService.getUserListByPhone(phoneInfoList);
 
         return userInfoList;
     }

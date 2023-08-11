@@ -70,6 +70,8 @@ public class SocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
 
+        System.out.println("접속하려는 세션 session = " + session);
+
         socketHandlerService.handleAfterConnectionEstablished(session);
 
     }
@@ -81,12 +83,17 @@ public class SocketHandler extends TextWebSocketHandler {
     @Transactional
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
 
+        System.out.println(
+            "퇴장하려는 세션 session = " + session.getAttributes().get("pospaceToken").toString());
+
         // Redis 채널로 퇴장메세지 보내기
         String pospaceToken = session.getAttributes().get("pospaceToken").toString();
+
+        socketHandlerService.afterConnectionClosedHandler(session, pospaceToken);
+
         TextMessage exitMessage = socketHandlerService.modifiedMessage(null, "exit", session);
         socketHandlerService.sendRedisMessage(pospaceToken, exitMessage);
 
-        socketHandlerService.afterConnectionClosedHandler(session, pospaceToken);
 
     }
 

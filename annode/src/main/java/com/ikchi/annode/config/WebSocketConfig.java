@@ -32,6 +32,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 "http://loadbalancer.annode-kic.com",
                 "https://annode-kic.com",
                 "http://annode-kic.com"
+//                "http://localhost:3000"
             )
             .withSockJS();
 

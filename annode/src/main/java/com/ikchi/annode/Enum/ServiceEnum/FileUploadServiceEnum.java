@@ -1,4 +1,4 @@
-package com.ikchi.annode.Enum.Service;
+package com.ikchi.annode.Enum.ServiceEnum;
 
 import java.util.List;
 

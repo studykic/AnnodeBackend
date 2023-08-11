@@ -46,6 +46,7 @@ public class SecurityConfig {
                 "http://loadbalancer.annode-kic.com",
                 "https://annode-kic.com",
                 "http://annode-kic.com"
+//                "http://localhost:3000"
             ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
@@ -75,7 +76,8 @@ public class SecurityConfig {
                     "/passwordReset", "/file/**",
                     "/view/**",
                     "/ws/**").permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**")
+                .hasRole("ADMIN")
                 .requestMatchers("/user/**", "/room/**", "/category/**", "/pospace/**")
                 .hasRole("USER")
                 .anyRequest().denyAll())

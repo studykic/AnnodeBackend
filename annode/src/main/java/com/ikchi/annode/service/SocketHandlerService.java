@@ -2,6 +2,9 @@ package com.ikchi.annode.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.ikchi.annode.Enum.PospaceExceptionMessage;
+import com.ikchi.annode.Enum.SocketHandlerMessage;
+import com.ikchi.annode.Enum.UserExceptionMessage;
 import com.ikchi.annode.domain.entity.Pospace;
 import com.ikchi.annode.domain.entity.User;
 import com.ikchi.annode.repository.PospaceRepository;
@@ -42,6 +45,7 @@ public class SocketHandlerService {
     private final UserRepository userRepository;
     private final PospaceRepository pospaceRepository;
     private final ReportUserRepository reportUserRepository;
+    private final UserService userService;
 
     private final RedisMessageSubscriber redisMessageSubscriber;
 
@@ -69,7 +73,9 @@ public class SocketHandlerService {
         String pospaceToken = sendRedisMessage(session);
 
         Pospace pospace = pospaceRepository.findByToken(pospaceToken)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 Pospace입니다"));
+            .orElseThrow(
+                () -> new NoSuchElementException(
+                    PospaceExceptionMessage.NO_SUCH_POST.getMessage()));
 
         String currentPospaceToken = increaseAndReturnChannelCount(pospaceToken, pospace);
 
@@ -98,8 +104,7 @@ public class SocketHandlerService {
         }
 
         String sessionEmail = concurrentSession.getAttributes().get("email").toString();
-        User user = userRepository.findUserByMail(sessionEmail)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다"));
+        User user = userService.findUserByMail(sessionEmail);
         user.setJoinedRoom(currentPospaceToken);
     }
 
@@ -165,11 +170,10 @@ public class SocketHandlerService {
         }
     }
 
-    // Method to generate a 6-character unique ID
     public String generateUniqueId() {
         String uuid = UUID.randomUUID().toString();
-        uuid = uuid.replace("-", "");  // remove hyphens
-        return uuid.substring(0, 6);   // take first 6 characters
+        uuid = uuid.replace("-", "");
+        return uuid.substring(0, 6);
     }
 
     @Transactional
@@ -233,9 +237,14 @@ public class SocketHandlerService {
     @Transactional
     public void afterConnectionClosedHandler(WebSocketSession session, String pospaceToken) {
 
-        List<WebSocketSession> webSocketSessions = getWebSocketSessions(pospaceToken);
-
         String email = session.getAttributes().get("email").toString();
+
+        User user = userRepository.findUserByMailWithLock(email)
+            .orElseThrow(() -> new NoSuchElementException(
+                UserExceptionMessage.NON_EXISTENT_USER.getMessage()));
+        user.setJoinedRoom(null);
+
+        List<WebSocketSession> webSocketSessions = getWebSocketSessions(pospaceToken);
 
         if (webSocketSessions != null && webSocketSessions.size() == 1) {
             sessionMap.remove(pospaceToken);
@@ -257,10 +266,6 @@ public class SocketHandlerService {
             }
         }
 
-        User user = userRepository.findUserByMail(email)
-            .orElseThrow(() -> new NoSuchElementException("존재하지 않는 유저입니다"));
-
-        user.setJoinedRoom(null);
 
     }
 
@@ -270,8 +275,9 @@ public class SocketHandlerService {
         if (!sessionMap.containsKey(roomToken)) {
             sessionMap.put(roomToken, Collections.synchronizedList(new ArrayList<>()));
         } else {
-            throw new IllegalArgumentException("이미 존재하는 방토큰 입니다");
+            throw new IllegalArgumentException(SocketHandlerMessage.ROOM_TOKEN_EXISTS.getMessage());
         }
+
     }
 
     public void removeRoom(String roomToken) {
@@ -298,7 +304,7 @@ public class SocketHandlerService {
 
             return decryptedRoomToken;
         } catch (Exception e) {
-            throw new RuntimeException("유저 정보를 생성하는데 실패했습니다");
+            throw new RuntimeException(SocketHandlerMessage.USER_CREATION_FAILED.getMessage());
         }
 
     }
@@ -345,7 +351,8 @@ public class SocketHandlerService {
             return resultMessage;
         } catch (Exception e) {
 
-            throw new IllegalArgumentException("메세지를 수정하는데 실패했습니다");
+            throw new IllegalArgumentException(
+                SocketHandlerMessage.MESSAGE_MODIFICATION_FAILED.getMessage());
         }
     }
 
@@ -377,7 +384,7 @@ public class SocketHandlerService {
                 }
             }
         } catch (IOException e) {
-            throw new IllegalStateException("시그널링 서버에서 메시지를 전송하는 도중에 오류가 발생했습니다.", e);
+            throw new IllegalStateException(SocketHandlerMessage.SIGNALING_ERROR.getMessage());
         }
 
     }
@@ -396,7 +403,7 @@ public class SocketHandlerService {
                 }
             }
         } catch (IOException e) {
-            throw new IllegalStateException("시그널링 서버에서 메시지를 전송하는 도중에 오류가 발생했습니다.", e);
+            throw new IllegalStateException(SocketHandlerMessage.SIGNALING_ERROR.getMessage());
         }
     }
 
@@ -414,12 +421,10 @@ public class SocketHandlerService {
 
             String sessionEmail = jwtProvider.getEmailFromToken(jwt);
 
-            User user = userRepository.findUserByMail(sessionEmail)
-                .orElseThrow(() -> new NoSuchElementException("해당 정보의 유저가 존재하지 않습니다"));
+            User user = userService.findUserByMail(sessionEmail);
             return user;
         } catch (Exception e) {
-
-            throw new NoSuchElementException("해당 정보의 유저가 존재하지 않습니다");
+            throw new NoSuchElementException(UserExceptionMessage.NON_EXISTENT_USER.getMessage());
         }
 
     }

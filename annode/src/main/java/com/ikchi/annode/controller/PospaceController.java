@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
@@ -32,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class PospaceController {
 
 
+    @Autowired
     private final PospaceService pospaceService;
 
     @PostMapping("/pospace/create")
