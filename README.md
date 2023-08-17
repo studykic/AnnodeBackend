@@ -74,7 +74,7 @@ PassWord : kic12190
 
 ## 프로젝트 진행 중 주요 문제해결 과정
 
-### [01. 스케일 아웃을 고려한 시스템 구성도](https://cuboid-butterkase-b4a.notion.site/5462665955a0422eb1972c1303a87bac?pvs=4)
+### [01. 시스템 구성도 설명 ](https://cuboid-butterkase-b4a.notion.site/5462665955a0422eb1972c1303a87bac?pvs=4)
 
 ### [02. 시그널링 서버 구축 및 분산환경에서의 웹소켓 시그널링 ](https://cuboid-butterkase-b4a.notion.site/8dcda672a3bd4d49ba67ea7cf7c78357?pvs=4)
 
