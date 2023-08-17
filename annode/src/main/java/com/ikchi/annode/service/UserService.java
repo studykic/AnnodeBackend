@@ -484,7 +484,7 @@ public class UserService {
             .orElseThrow(() -> new NoSuchElementException(
                 UserExceptionMessage.NON_EXISTENT_FOLLOW_REQUEST.getMessage()));
 
-        User requester = annodeFollow.getRequester();
+        User requester = findUserWithRelationshipsByEmail(annodeFollow.getRequester().getEmail());
 
         List<UserRelationShip> userRelationShipList = requester.getUserRelationShipList();
 
@@ -843,6 +843,12 @@ public class UserService {
     public User findUserByIdentifier(String email) {
         return userRepository.findUserByIdentifier(email).orElseThrow(
             () -> new NoSuchElementException(UserExceptionMessage.NON_EXISTENT_USER.getMessage()));
+    }
+
+    public User findUserWithRelationshipsByEmail(String email) {
+        return userRepository.findUserWithRelationshipsByEmail(email).orElseThrow(
+            () -> new NoSuchElementException(
+                UserExceptionMessage.NON_EXISTENT_USER.getMessage()));
     }
 
 }

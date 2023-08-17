@@ -73,6 +73,7 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<UserRelationShip> userRelationShipList;
 
+
     // 유저의 권한 설정
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_authorities", joinColumns = @JoinColumn(name = "user_id"))

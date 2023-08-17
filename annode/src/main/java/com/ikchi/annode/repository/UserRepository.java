@@ -160,6 +160,16 @@ public class UserRepository {
         return optionalUser;
     }
 
+    public Optional<User> findUserWithRelationshipsByEmail(String email) {
+        TypedQuery<User> query = em.createQuery(
+            "SELECT u FROM User u JOIN FETCH u.userRelationShipList WHERE u.email = :email",
+            User.class);
+        query.setParameter("email", email);
+
+        Optional<User> optionalUser = query.getResultList().stream().findFirst();
+        return optionalUser;
+    }
+
 
     // email을 통해 유저를 조회한후 좋아요를 1씩 증가시키는 쿼리 메소드
     // 또한 동시에 여러명이 좋아요를 누를수있기에 PESSIMISTIC_WRITE 락을 걸어 동시성 문제를 방지한다
