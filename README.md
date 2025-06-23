@@ -72,12 +72,6 @@ PassWord : kic12190
 1. 일반적인 웹사이트 접속
 2. 안드로이드 웹뷰를 이용한 Application 접속
 
-## 프로젝트 진행 중 주요 문제해결 과정
-
-### [01. 시스템 구성도 설명 ](https://cuboid-butterkase-b4a.notion.site/5462665955a0422eb1972c1303a87bac?pvs=4)
-
-### [02. 시그널링 서버 구축 및 분산환경에서의 웹소켓 시그널링 ](https://cuboid-butterkase-b4a.notion.site/8dcda672a3bd4d49ba67ea7cf7c78357?pvs=4)
-
 ## 주요 구현 기능
 
 ### 소셜
